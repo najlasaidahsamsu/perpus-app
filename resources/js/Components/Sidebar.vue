@@ -12,7 +12,7 @@
             <Link href="/" class="block hover:text-gray-300">
                 Beranda
             </Link>
-            <Link href="/" class="block hover:text-gray-300">
+            <Link href="/books" class="block hover:text-gray-300">
                 Data Buku
             </Link>
 
