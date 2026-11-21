@@ -15,21 +15,46 @@ class BookController extends Controller
 {
     $books = Book::query()
         ->when($request->search, function ($query, $search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('kode_buku', 'like', "%{$search}%")
-                  ->orWhere('judul', 'like', "%{$search}%")
-                  ->orWhere('pengarang', 'like', "%{$search}%");
+            $query->where(function ($q) use ($keyword) {
+            $q->where('judul', 'like', "%{$keyword}%")
+                ->orWhere('pengarang', 'like', "%{$keyword}%")
+                ->orWhere('penerbit', 'like', "%{$keyword}%");
             });
         })
         ->latest()
         ->paginate(10)
         ->withQueryString();
 
-    return inertia('Books/Index', [
-        'books' => $books,
-        'search' => $request->search,
-    ]);
+    
+return inertia('Books/Index', [
+    'books' => $books,
+    'search' => $request->search,   // dikirim balik ke Vue agar kotak pencarian tetap terisi
+]);
+
 }
+
+/**
+ * Endpoint JSON untuk live search buku (dipanggil oleh Axios).
+ */
+public function search(Request $request)
+{
+    // Kata kunci dibaca dari URL, misalnya /books/search?q=Laravel
+    $kataKunci = $request->query('q', '');
+
+    // Dua kondisi (judul ATAU pengarang) dikelompokkan di dalam satu function,
+    // lalu diambil maksimal 10 baris dengan kolom yang diperlukan saja
+    $books = Book::where(function ($query) use ($kataKunci) {
+        $query->where('judul', 'like', "%{$kataKunci}%")
+            ->orWhere('pengarang', 'like', "%{$kataKunci}%");
+    })
+        ->latest()
+        ->limit(10)
+        ->get(['id', 'kode_buku', 'judul', 'pengarang', 'stok']);
+
+    // response()->json() mengirim data mentah (JSON), bukan halaman Inertia
+    return response()->json($books);
+}
+
 
     /**
      * Menampilkan form tambah buku.
@@ -79,6 +104,17 @@ class BookController extends Controller
         'book' => $book, 
     ]); 
 } 
+
+public function cekKode(Request $request)
+{
+    $kode = $request->query('kode', '');
+
+    $sudahDipakai = Book::where('kode', $kode)->exists();
+
+    return response()->json([
+        'tersedia' => ! $sudahDipakai,
+    ]);
+}
   
 public function update(Request $request, Book $book) 
 { 
