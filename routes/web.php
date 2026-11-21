@@ -5,6 +5,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HomeController; 
 use App\Http\Controllers\BookController; 
+use App\Http\Controllers\MemberController;
 use Inertia\Inertia;
 
 Route::get('/', [HomeController::class, 'index']); 
@@ -14,7 +15,7 @@ Route::get('/kontak', [HomeController::class, 'kontak']);
 // Blok baru: seluruh route di dalamnya hanya bisa diakses setelah login 
 Route::middleware(['auth'])->group(function () { 
     Route::resource('books', BookController::class); 
-    // baris di atas otomatis mewakili 7 alamat CRUD (index, create, store, show, edit, update, destroy) 
+   Route::resource('members', MemberController::class); // baris baru: 7 alamat CRUD untuk anggota 
 }); 
 
 Route::get('/', function () {

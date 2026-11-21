@@ -12,6 +12,7 @@ class Member extends Model
         'nama', 
         'nis_nim', 
         'no_hp', 
+        'foto',
     ]; 
 
         use HasFactory; 
