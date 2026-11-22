@@ -1,9 +1,6 @@
-
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { useForm } from '@inertiajs/vue3';
-import { ref, watch, onBeforeUnmount } from 'vue';
-import axios from 'axios';
 
 // useForm membuat sebuah objek form yang otomatis mengelola nilai input dan pesan error
 const form = useForm({
@@ -15,120 +12,73 @@ const form = useForm({
     stok: 0,
 });
 
-// Status validasi kode buku
-const statusKode = ref('');
-let timer = null;
-let controller = null;
-
-// Mengecek kode buku secara real-time
-watch(() => form.kode_buku, (kode) => {
-    clearTimeout(timer);
-
-    // Membatalkan request sebelumnya jika masih berjalan
-    if (controller) {
-        controller.abort();
-    }
-
-    // Jika input kosong, status dikembalikan
-    if (!kode.trim()) {
-        statusKode.value = '';
-        return;
-    }
-
-    statusKode.value = 'mengecek';
-
-    // Memberikan jeda 500ms sebelum mengirim request
-    timer = setTimeout(async () => {
-        controller = new AbortController();
-
-        try {
-            const response = await axios.get(route('books.cek-kode'), {
-                params: {
-                    kode_buku: kode
-                },
-                signal: controller.signal
-            });
-
-            statusKode.value = response.data.tersedia
-                ? 'tersedia'
-                : 'terpakai';
-
-        } catch (error) {
-            if (error.name !== 'CanceledError' && !axios.isCancel(error)) {
-                statusKode.value = '';
-                console.error('Gagal mengecek kode buku:', error);
-            }
-        }
-    }, 500);
-});
-
-// Membersihkan timer dan request ketika komponen ditutup
-onBeforeUnmount(() => {
-    clearTimeout(timer);
-
-    if (controller) {
-        controller.abort();
-    }
-});
-
-// Dipanggil ketika tombol submit diklik
+// Dipanggil kembali saat tombol submit diklik
 function submit() {
-    // Mengirim data form ke route books.store
+    // Mengirim data form ke route books.store, yaitu method store() pada BookController
     form.post(route('books.store'));
 }
 </script>
 
 <template>
     <AuthenticatedLayout>
-        <h1>Tambah Buku</h1>
+        <div class="p-4">
+            <h1 class="text-xl font-bold">Tambah Buku</h1>
 
-        <form @submit.prevent="submit">
-            <!-- @submit.prevent mencegah form reload halaman, lalu menjalankan function submit() -->
+            <!-- @submit.prevent mencegah form reload halaman, lalu menjalankan submit() -->
+            <!-- space-y-3: jarak antar kelompok isian; setiap isian dibungkus div -->
+            <form @submit.prevent="submit" class="mt-3 space-y-3">
+                <div>
+                    <!-- label class="block": label tampil sebagai baris sendiri -->
+                    <label class="block">Kode Buku</label>
+                    <input v-model="form.kode_buku" type="text">
+                    <!-- Menampilkan pesan error dari validasi Laravel jika ada -->
+                    <div v-if="form.errors.kode_buku" class="text-red-600">
+                        {{ form.errors.kode_buku }}
+                    </div>
+                </div>
 
-            <label>Kode Buku</label>
-            <input v-model="form.kode_buku" type="text">
+                <div>
+                    <label class="block">Judul</label>
+                    <input v-model="form.judul" type="text">
+                    <div v-if="form.errors.judul" class="text-red-600">
+                        {{ form.errors.judul }}
+                    </div>
+                </div>
 
-            <!-- Menampilkan status pengecekan kode buku -->
-            <span v-if="statusKode === 'mengecek'">
-                Sedang mengecek kode buku...
-            </span>
+                <div>
+                    <label class="block">Pengarang</label>
+                    <input v-model="form.pengarang" type="text">
+                    <div v-if="form.errors.pengarang" class="text-red-600">
+                        {{ form.errors.pengarang }}
+                    </div>
+                </div>
 
-            <span v-if="statusKode === 'tersedia'" style="color: green;">
-                Kode buku tersedia
-            </span>
+                <div>
+                    <label class="block">Penerbit</label>
+                    <input v-model="form.penerbit" type="text">
+                    <div v-if="form.errors.penerbit" class="text-red-600">
+                        {{ form.errors.penerbit }}
+                    </div>
+                </div>
 
-            <span v-if="statusKode === 'terpakai'" style="color: red;">
-                Kode buku sudah digunakan
-            </span>
+                <div>
+                    <label class="block">Tahun</label>
+                    <input v-model="form.tahun" type="text">
+                    <div v-if="form.errors.tahun" class="text-red-600">
+                        {{ form.errors.tahun }}
+                    </div>
+                </div>
 
-            <!-- Menampilkan pesan error dari validasi Laravel jika ada -->
-            <span v-if="form.errors.kode_buku" style="color: red;">
-                {{ form.errors.kode_buku }}
-            </span>
+                <div>
+                    <label class="block">Stok</label>
+                    <input v-model="form.stok" type="number">
+                    <div v-if="form.errors.stok" class="text-red-600">
+                        {{ form.errors.stok }}
+                    </div>
+                </div>
 
-            <label>Judul</label>
-            <input v-model="form.judul" type="text">
-            <span v-if="form.errors.judul">{{ form.errors.judul }}</span>
-
-            <label>Pengarang</label>
-            <input v-model="form.pengarang" type="text">
-            <span v-if="form.errors.pengarang">{{ form.errors.pengarang }}</span>
-
-            <label>Penerbit</label>
-            <input v-model="form.penerbit" type="text">
-
-            <label>Tahun</label>
-            <input v-model="form.tahun" type="text">
-
-            <label>Stok</label>
-            <input v-model="form.stok" type="number">
-
-            <button
-                type="submit"
-                :disabled="form.processing || statusKode === 'terpakai' || statusKode === 'mengecek'"
-            >
-                Simpan
-            </button>
-        </form>
+                <button type="submit" :disabled="form.processing">Simpan</button>
+            </form>
+        </div>
     </AuthenticatedLayout>
 </template>
